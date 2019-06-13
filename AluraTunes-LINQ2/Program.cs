@@ -11,56 +11,103 @@ namespace AluraTunes_LINQ2
     {
         static void Main(string[] args)
         {
-            var generos = new List<Genero>
+            using (var contexto = new AluraTunesEntities())
             {
-                new Genero { Id = 1, Nome = "Rock" },
-                new Genero { Id = 2, Nome = "Reggae" },
-                new Genero { Id = 3, Nome = "Rock Progressivo" },
-                new Genero { Id = 4, Nome = "Punk Rock" },
-                new Genero { Id = 5, Nome = "Clássica" }
-            };
+                const int TAMANHO_PAGINA = 10;
+                var numeroNotasFiscais = contexto.NotaFiscais.Count();
+                var numeroPagina = Math.Ceiling((decimal)numeroNotasFiscais / TAMANHO_PAGINA);
 
-            var Query = from g in generos
-                        where g.Nome.Contains("Rock")
-                        select g;
-
-            foreach (var genero in Query)
-            {
-                Console.WriteLine("{0}\t{1}", genero.Id, genero.Nome);
+                for (int i = 1; i <= numeroPagina; i++)
+                {
+                    ImprimirPagina(contexto, TAMANHO_PAGINA, i);
+                }
             }
 
             Console.WriteLine();
-
-            var musicas = new List<Musica>
-            {
-                new Musica { Id = 1, Nome = "Sweet child o'Mine", GeneroId = 1 },
-                new Musica { Id = 2, Nome = "I Shot The Sheriff", GeneroId = 2 },
-                new Musica { Id = 3, Nome = "Danúbio Azul", GeneroId = 5 }
-            };
-
-            var musicaQuery = from m in musicas
-                              join g in generos on m.GeneroId equals g.Id
-                              select new { m, g };
-
-            foreach (var musica in musicaQuery)
-            {
-                Console.WriteLine("{0}\t{1}\t{2}", musica.m.Id, musica.m.Nome, musica.g.Nome);
-            }
-
-            Console.WriteLine();
+            Console.WriteLine("Mostrar as notas ficais acima da média");
 
             using (var contexto = new AluraTunesEntities())
             {
-                var query = from m in contexto.Artistas
-                            select m;
+                decimal queryMedia = contexto.NotaFiscais.Average(n => n.Total);
+                var query = from nf in contexto.NotaFiscais
+                            where nf.Total > queryMedia
+                            orderby nf.Total descending
+                            select new
+                            {
+                                Numero = nf.NotaFiscalId,
+                                Data = nf.DataNotaFiscal,
+                                Cliente = nf.Cliente.PrimeiroNome + " " + nf.Cliente.Sobrenome,
+                                Total = nf.Total
+                            };
 
-                foreach (var item in query)
+                foreach (var notaFiscal in query)
                 {
-                    Console.WriteLine("{0}\t{1}", item.ArtistaId, item.Nome);
+                    Console.WriteLine("{0}\t{1}\t{2}\t{3}", notaFiscal.Numero, notaFiscal.Data, notaFiscal.Cliente.PadRight(20), notaFiscal.Total);
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("Produto mais vendido");
+
+            using (var contexto = new AluraTunesEntities())
+            {
+                var faixasQuery = from f in contexto.Faixas
+                                  where f.ItemNotaFiscals.Count() > 0
+                                  let TotalDeVendas = f.ItemNotaFiscals.Sum(nf => nf.Quantidade * nf.PrecoUnitario)
+                                  orderby TotalDeVendas descending
+                                  select new
+                                  {
+                                      f.FaixaId,
+                                      f.Nome,
+                                      Total = TotalDeVendas
+                                  };
+
+                var produtoMaisVendido = faixasQuery.First();
+
+                Console.WriteLine("{0}\t{1}\t{2}", produtoMaisVendido.FaixaId, produtoMaisVendido.Nome.PadRight(20), produtoMaisVendido.Total);
+
+                Console.WriteLine();
+
+                var query = from inf in contexto.ItemNotaFiscais
+                            where inf.FaixaId == produtoMaisVendido.FaixaId
+                            select new
+                            {
+                                nomeCliente = inf.NotaFiscal.Cliente.PrimeiroNome + " " + inf.NotaFiscal.Cliente.Sobrenome
+                            };
+
+                foreach (var cliente in query)
+                {
+                    Console.WriteLine(cliente.nomeCliente);
                 }
             }
 
             Console.ReadKey();
+        }
+
+        private static void ImprimirPagina(AluraTunesEntities contexto, int TAMANHO_PAGINA, int numeroPagina)
+        {
+            var query = from nf in contexto.NotaFiscais
+                        orderby nf.NotaFiscalId
+                        select new
+                        {
+                            Numero = nf.NotaFiscalId,
+                            Data = nf.DataNotaFiscal,
+                            Cliente = nf.Cliente.PrimeiroNome + " " + nf.Cliente.Sobrenome,
+                            Total = nf.Total
+                        };
+            int numeroDePulos = (numeroPagina - 1) * TAMANHO_PAGINA;
+
+            query = query.Skip(numeroDePulos);
+
+            query = query.Take(TAMANHO_PAGINA);
+
+            Console.WriteLine();
+            Console.WriteLine("Número da Página: {0}", numeroPagina);
+
+            foreach (var item in query)
+            {
+                Console.WriteLine("{0}\t{1}\t{2}\t{3}", item.Numero, item.Data, item.Cliente.PadRight(20), item.Total);
+            }
         }
 
         class Genero
