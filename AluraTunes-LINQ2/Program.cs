@@ -1,9 +1,11 @@
 ﻿using AluraTunes_LINQ2.Data;
 using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ZXing;
 
 namespace AluraTunes_LINQ2
 {
@@ -127,6 +129,19 @@ namespace AluraTunes_LINQ2
                     }
                 }
             }
+
+            Console.WriteLine();
+            Console.WriteLine("Qrcode");
+
+            var barCodeWriter = new BarcodeWriter();
+            barCodeWriter.Format = BarcodeFormat.QR_CODE;
+            barCodeWriter.Options = new ZXing.Common.EncodingOptions
+            {
+                Width = 100,
+                Height = 100
+            };
+
+            barCodeWriter.Write("Squadra Tecnologia").Save("QrCode.jpg", ImageFormat.Jpeg);
 
             Console.ReadKey();
         }
