@@ -81,6 +81,28 @@ namespace AluraTunes_LINQ2
                 }
             }
 
+            Console.WriteLine();
+            Console.WriteLine("Função para mostra que um item comprado pode comprar também");
+
+            var nomeDaMusica = "Smells Like Teen Spirit";
+
+            using (var contexto = new AluraTunesEntities())
+            {
+                var faixaIds = contexto.Faixas.Where(f => f.Nome == nomeDaMusica).Select(f => f.FaixaId);
+
+                var query = from comprouItem in contexto.ItemNotaFiscais
+                            join comprouTambem in contexto.ItemNotaFiscais
+                                on comprouItem.NotaFiscalId equals comprouTambem.NotaFiscalId
+                            where faixaIds.Contains(comprouItem.FaixaId)
+                                && comprouItem.FaixaId != comprouTambem.FaixaId
+                            select comprouTambem;
+
+                foreach (var item in query)
+                {
+                    Console.WriteLine("{0}\t{1}", item.ItemNotaFiscalId, item.Faixa.Nome);
+                }
+            }
+
             Console.ReadKey();
         }
 
