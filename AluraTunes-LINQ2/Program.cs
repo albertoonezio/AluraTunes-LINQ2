@@ -103,6 +103,31 @@ namespace AluraTunes_LINQ2
                 }
             }
 
+            Console.WriteLine();
+            Console.WriteLine("Lista de aniversariantes do Mês");
+
+            using (var contexto = new AluraTunesEntities())
+            {
+                var mesAniversario = 1;
+
+                while (mesAniversario <= 12)
+                {
+                    Console.WriteLine("Mês: {0}", mesAniversario);
+
+                    var lista = (from f in contexto.Funcionarios
+                                where f.DataNascimento.Value.Month == mesAniversario
+                                orderby f.DataNascimento.Value.Month, f.DataNascimento.Value.Day
+                                select f).ToList();
+
+                    mesAniversario += 1;
+
+                    foreach (var func in lista)
+                    {
+                        Console.WriteLine("{0:dd/MM}\t{1} {2}", func.DataNascimento, func.PrimeiroNome, func.Sobrenome);
+                    }
+                }
+            }
+
             Console.ReadKey();
         }
 
